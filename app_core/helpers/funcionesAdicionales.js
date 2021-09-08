@@ -1,18 +1,8 @@
 
 const archiver = require('archiver');
 const fs = require("fs");
+const moment = require("moment");
 
-
-var darNombreCompleto = (persona, apellidos_primero="N")=>{
-    let cadena ="";
-    if(apellidos_primero=="S"){
-        cadena = `${persona.primer_apellido} ${persona.segundo_apellido?persona.segundo_apellido:''} ${persona.primer_nombre} ${persona.segundo_nombre?persona.segundo_nombre:''}`;
-    } else {
-        cadena = `${persona.primer_nombre} ${persona.segundo_nombre?persona.segundo_nombre:''} ${persona.primer_apellido} ${persona.segundo_apellido?persona.segundo_apellido:''}`;
-    }
-
-    return cadena;
-}
 
 var setearFecha =(fecha, horas, minutos)=>{
 
@@ -58,8 +48,7 @@ var darHora=(date)=>{
     let horas= addZeros(date.getHours(),2);
     let minutos= addZeros(date.getMinutes(),2);
 
-    let cadena = `${horas}:${minutos}`
-    return cadena 
+    return `${horas}:${minutos}`
 }
 
 /**
@@ -73,60 +62,23 @@ var addZeros= (numero,cantidad)=>{
     return s;
 }
 
+var validarFechaBloqueo = (fechaBloqueo)=>{
 
-/**
- * @param {String} source
- * @param {String} out
- * @returns {Promise}
- */
-function zipDirectory(source, out) {
-	const archive = archiver('zip', { zlib: { level: 9 } });
-	const stream = fs.createWriteStream(out);
+    var ahorita = moment();
+    var bloquem = moment(fechaBloqueo);
 
-	return new Promise((resolve, reject) => {
-		archive
-			.directory(source, false)
-			.on('error', err => reject(err))
-			.pipe(stream)
-			;
-
-		stream.on('close', () => resolve());
-		archive.finalize();
-	});
+    if(ahorita.isAfter(bloquem)){
+       return true;     
+    } 
+    return false; 
 }
 
-/**
-* Metodo que elimina un archivo
-* @param {*} ruta ubicación del archivo
-*/
-function eliminarArchivo(ruta) {
-	return new Promise((resolve, reject) => {
-		try {
-			if (ruta != null && ruta != '') {
-				let existe = fs.existsSync(ruta);
-
-				if (existe) {
-					fs.unlinkSync(ruta);
-				}
-			} else {
-				resolve(false);
-			}
-
-			resolve(true);
-		} catch (error) {
-			console.log('Error al tratar de eliminar el archivo.');
-			resolve(false);
-		}
-	});
-}
 
 
 module.exports={
-    darNombreCompleto,
     setearFecha,
     addZeros,
     darHora,
     formatearFecha,
-    zipDirectory,
-    eliminarArchivo
+    validarFechaBloqueo
 }

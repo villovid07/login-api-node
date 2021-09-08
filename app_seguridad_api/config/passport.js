@@ -10,6 +10,8 @@ var LocalStrategy = require("passport-local").Strategy;
 var Models = require("../../app_core/models/index");
 var Encriptar = require("../../app_core/helpers/encriptacion.js");
 
+var FuncionesAdicionales = require("../../app_core/helpers/funcionesAdicionales");
+
 passport.use(new LocalStrategy({
     usernameField: 'username',
     passwordField: 'password'
@@ -18,33 +20,56 @@ passport.use(new LocalStrategy({
 
         try{
 
-            var usuario = await Models.Usuario.find({
-                attributes:["id_usuario", "estado", "es_super","rol"],
+            var autenticado = false;
+            var mensajeerror="";
+            var userres = await Models.Usuario.find({
+                attributes:["id_usuario", "nombre", "apellido", "id_complejidad", "fecha_bloqueo"],
                 where:{
-                    "clave":Encriptar.encriptar(password),
-                    "estado":'A'
+                    "username": usuario,
                 },
                 include:[{
-                    attributes:["id_persona","num_identificacion"],
-                    model: Models.Persona,
-                    where:{
-                       "num_identificacion": usuario
-                    }
+                    attributes:["desc_perfil","pantalla_inicio"],
+                    model: Models.Perfil,
                 }]
             });
-            console.log(usuario);
-            if(usuario){
-                return done(null, usuario);
+
+            if(userres){
+                
+                if(FuncionesAdicionales.validarFechaBloqueo(userres.fecha_bloqueo)){
+                    var contra = await Models.Contrasenia.find({
+                        where:{
+                            estado:'A',
+                            password_value:Encriptar.encriptar(password)
+                        },
+                        raw:true
+                    });
+    
+                    if(contra){
+                        autenticado=true;
+                    } else{
+                        mensajeerror="Contraseña incorrecta";
+                    }
+                } else {
+                    mensajeerror= "Usuario bloqueado hasta "+ FuncionesAdicionales.formatearFecha(userres.fecha_bloqueo, 'S');
+                }
+                
+                
             } else {
-                return done(null, false, {
-                    "mensaje": "Los datos de autenticación no son validos"
-                });
+                mensajeerror= "Usuario no encontrado";
             }
 
+            if(autenticado){
+                return done(null, userres);
+            } else {
+                return done(null, false, {
+                    "id_complejidad": userres? userres.id_complejidad: null,
+                    "mensaje": mensajeerror
+                });
+            }
         }
         catch(error){
             console.log(error);
-            return done(error);
+            return done({"mensaje":error});
         }
     }
 ));

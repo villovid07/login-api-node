@@ -2,13 +2,16 @@ var Models=require("../models/index");
 var FuncionesAdicionales = require("../helpers/funcionesAdicionales");
 var sequelize = Models.sequelize;
 var Constantes = require("../constantes/constantesApp");
+var moment = require('moment');  
 
 
 const registroUsuario = ( datos , contrasenia)=>{
     return new Promise (async (resolve,reject)=>{
 
-        let trans = await sequelize.transaction({autocommit:false});
+        let trans = null;
         try {
+
+            trans = await sequelize.transaction({autocommit:false});
             let usuario = await Models.Usuario.create ( datos,{ transaction: trans });
 
             let datosContra  = {
@@ -34,6 +37,57 @@ const registroUsuario = ( datos , contrasenia)=>{
 }
 
 
+const bloquearUsuario  = (username, tiempo)=>{
+    return new Promise(async (resolve ,reject)=>{
+
+        let trans = null;
+        try {
+
+            trans = await sequelize.transaction({autocommit:false});
+
+            let usuario = await Models.Usuario.find({
+                where:{
+                    "username": username
+                },
+                raw:true
+            });
+
+            let fechaactual = moment();
+            fechaactual.add(tiempo, 'minute');
+
+            let actualizado = await actualizarUsuario({"fecha_bloqueo":fechaactual.toDate()},usuario.id_usuario, trans);
+            console.log(actualizado);
+
+            await trans.commit();
+
+            resolve ({"mensaje": `Usuario bloqueado por lo siguientes ${tiempo} minutos`});
+            
+        } catch (error) {
+            if(trans){
+                await trans.rollback();
+            }
+            reject ({"mensaje": "Error en el registro del bloqueo", "error_original": error});   
+        }
+    });
+}
+
+const actualizarUsuario = (datos, id_usuario, trans)=>{
+    return new Promise((resolve, reject)=>{
+        Models.Usuario.update(datos, {
+            where:{
+                id_usuario: id_usuario
+            },
+            transaction: trans
+        }).spread((contador, registros )=>{
+            resolve( {"mensaje": `usuario ${id_usuario} actualizado exitosamente`});
+        }).catch((error)=>{
+            reject(error);
+        });
+    }); 
+}
+
+
 module.exports={
-    registroUsuario
+    registroUsuario,
+    bloquearUsuario
 }

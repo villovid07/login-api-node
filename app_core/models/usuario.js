@@ -44,7 +44,12 @@ module.exports = function (sequelize, DataTypes) {
         fecha_ultimo_login:{
             allowNull:true,
             type:DataTypes.DATE
+        }, 
+        fecha_bloqueo: {
+            allowNull:true,
+            type: DataTypes.DATE
         }
+
 
 
     }, {
@@ -61,6 +66,21 @@ module.exports = function (sequelize, DataTypes) {
                 models.Usuario.belongsTo(models.Complejidad,{foreignKey: 'id_complejidad'});
                 models.Usuario.hasMany(models.Contrasenia , { foreignKey: 'id_usuario' });
             },
+            instanceMethods: {
+			
+                generateJwt () {
+                  
+                  var idusuario=this.id_usuario;
+                  var nombre= `${this.nombre} ${this.apellido}`;
+                  var clave=process.env.JWT_SECRET
+                  fechaExpiracion.setDate(fechaExpiracion.getDate()+7)
+                  return Jwt.sign({
+                    user:idusuario,
+                    nombre:nombre,
+                    exp:parseInt(fechaExpiracion.getTime()/1000),
+                  }, clave, { algorithm: 'HS256', })
+                },
+            }
         },
     })
 }
