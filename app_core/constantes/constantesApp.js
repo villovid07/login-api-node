@@ -1,0 +1,7 @@
+module.exports={
+    PERFIL_INVITADO: 1,
+    COMPLEJIDAD_DEFAULT: 1,
+    ESTADO_ACTIVO:'A', 
+    CARACTER_SI: 'S',
+    CARACTER_NO: 'N'
+}
