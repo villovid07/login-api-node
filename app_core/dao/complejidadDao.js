@@ -13,7 +13,30 @@ const darComplejidadById = (id_complejidad) =>{
 }
 
 
+const darListaComplejidades = () =>{
+    return Models.Complejidad.findAll({
+        raw:true
+    });
+}
+
+const actualizarComplejidad= (datos, id_complejidad)=>{
+    return new Promise ((resolve, reject)=>{
+        Models.Complejidad.update( datos , {
+            where:{
+                id_complejidad: id_complejidad
+            }
+        }).spread((contador , registros )=>{
+            resolve({"mensaje": "Registro actualizado exitosamente"});
+        }).catch((error)=>{
+            reject(error);
+        });
+    });
+}
+
+
 module.exports = {
-    darComplejidadById 
+    darComplejidadById,
+    darListaComplejidades,
+    actualizarComplejidad
 }
 

@@ -3,6 +3,7 @@ var FuncionesAdicionales = require("../helpers/funcionesAdicionales");
 var sequelize = Models.sequelize;
 var Constantes = require("../constantes/constantesApp");
 var moment = require('moment');  
+var Jsonwebtoken = require("jsonwebtoken");
 
 
 const registroUsuario = ( datos , contrasenia)=>{
@@ -71,6 +72,24 @@ const bloquearUsuario  = (username, tiempo)=>{
     });
 }
 
+const actualizarFechaLogin = (id_usuario)=>{
+    return new Promise(async (resolve, reject)=>{
+        let trans = null
+        try {
+            trans = await sequelize.transaction({autocommit:false});
+            let actualizacion = await actualizarUsuario ({fecha_ultimo_login: new Date()}, id_usuario, trans);
+            console.log(actualizacion);
+            await trans.commit();
+            resolve ({"mensaje":"Actualizada fecha de ultimo login"})
+        } catch (error) {
+            if(trans){
+                await trans.rollback();
+            }
+            reject(error);
+        }
+    })
+}
+
 const actualizarUsuario = (datos, id_usuario, trans)=>{
     return new Promise((resolve, reject)=>{
         Models.Usuario.update(datos, {
@@ -87,7 +106,37 @@ const actualizarUsuario = (datos, id_usuario, trans)=>{
 }
 
 
+const darInfoToken = async (token)=>{
+    return new Promise(async (resolve, reject)=>{
+        try {
+            var datos = await verificarToken(token, process.env.JWT_SECRET);
+            resolve({
+                "nombre": datos.nombre,
+                "fecha_ultimo_login": datos.fecha_ultimo_login 
+            })
+        } catch (error) {
+            reject(error);
+        }
+    })
+}
+
+
+const verificarToken = (token, clave) => {
+    return new Promise((resolve, reject) => {
+        Jsonwebtoken.verify(token, clave, function (err, decoded) {
+            if (err) {
+                reject(err);
+            }
+            else {
+                resolve(decoded);
+            }
+        });
+    })
+}
+
 module.exports={
     registroUsuario,
-    bloquearUsuario
+    bloquearUsuario, 
+    actualizarFechaLogin,
+    darInfoToken
 }

@@ -65,12 +65,16 @@ var addZeros= (numero,cantidad)=>{
 var validarFechaBloqueo = (fechaBloqueo)=>{
 
     var ahorita = moment();
-    var bloquem = moment(fechaBloqueo);
+    if(fechaBloqueo){
+        var bloquem = moment(fechaBloqueo);
 
-    if(ahorita.isAfter(bloquem)){
-       return true;     
-    } 
-    return false; 
+        if(ahorita.isAfter(bloquem)){
+            return true;     
+        } 
+        return false; 
+    } else {
+        return true;
+    }
 }
 
 

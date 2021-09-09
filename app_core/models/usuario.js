@@ -1,5 +1,8 @@
 'use strict'
 
+var Jwt= require('jsonwebtoken');
+var FuncionesAdicionales = require('../helpers/funcionesAdicionales');
+
 module.exports = function (sequelize, DataTypes) {
     return sequelize.define('Usuario', {
 
@@ -66,21 +69,24 @@ module.exports = function (sequelize, DataTypes) {
                 models.Usuario.belongsTo(models.Complejidad,{foreignKey: 'id_complejidad'});
                 models.Usuario.hasMany(models.Contrasenia , { foreignKey: 'id_usuario' });
             },
-            instanceMethods: {
-			
-                generateJwt () {
-                  
-                  var idusuario=this.id_usuario;
-                  var nombre= `${this.nombre} ${this.apellido}`;
-                  var clave=process.env.JWT_SECRET
-                  fechaExpiracion.setDate(fechaExpiracion.getDate()+7)
-                  return Jwt.sign({
-                    user:idusuario,
-                    nombre:nombre,
-                    exp:parseInt(fechaExpiracion.getTime()/1000),
-                  }, clave, { algorithm: 'HS256', })
-                },
-            }
+            
         },
+        instanceMethods: {
+			
+            generateJwt () {
+              
+              var idusuario=this.id_usuario;
+              var nombre= `${this.nombre} ${this.apellido}`;
+              var clave=process.env.JWT_SECRET
+              var fechaExpiracion= new Date();
+              fechaExpiracion.setDate(fechaExpiracion.getDate()+7)
+              return Jwt.sign({
+                user:idusuario,
+                nombre:nombre,
+                fecha_ultimo_login: this.fecha_ultimo_login?FuncionesAdicionales.formatearFecha(this.fecha_ultimo_login, 'S'):FuncionesAdicionales.formatearFecha(new Date(), 'S'),
+                exp:parseInt(fechaExpiracion.getTime()/1000),
+              }, clave, { algorithm: 'HS256', })
+            },
+        }
     })
 }

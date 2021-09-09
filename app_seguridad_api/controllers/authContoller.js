@@ -9,7 +9,7 @@ const Passport = require("passport");
 
 
 const doLogin = (req, res, next) => {
-    Passport.authenticate('local', (err, usuario, info) => {
+    Passport.authenticate('local', async (err, usuario, info) => {
 
         var resusuario = null; 
         var error = {};
@@ -31,6 +31,7 @@ const doLogin = (req, res, next) => {
             var token = resusuario.generateJwt();
             var perfil = resusuario.Perfil.desc_perfil;
             var pantalla_inicio = resusuario.Perfil.pantalla_inicio; 
+            await SeguridadDao.actualizarFechaLogin(resusuario.id_usuario)
             Respuesta.sendJsonResponse(res, 200, {"token": token, "perfil": perfil, "pantalla_inicio":pantalla_inicio});
 
         } else {
@@ -124,8 +125,20 @@ const validarNivelBloqueo = async (req, res) =>{
 }
 
 
+const darInfoUsuario = async (req, res)=>{
+    try {
+        let token = req.body.token;
+        let datos = await SeguridadDao.darInfoToken(token);
+        Respuesta.sendJsonResponse(res, 200, datos);
+    } catch (error) {
+        Respuesta.sendJsonResponse(res, 500, {"mensaje": "El usuario no se encuentra autenticado", "error_original": error});   
+    }
+}
+
+
 module.exports={
     registro, 
     doLogin, 
-    validarNivelBloqueo
+    validarNivelBloqueo,
+    darInfoUsuario
 }

@@ -23,7 +23,7 @@ passport.use(new LocalStrategy({
             var autenticado = false;
             var mensajeerror="";
             var userres = await Models.Usuario.find({
-                attributes:["id_usuario", "nombre", "apellido", "id_complejidad", "fecha_bloqueo"],
+                attributes:["id_usuario", "nombre", "apellido", "id_complejidad", "fecha_bloqueo", "fecha_ultimo_login"],
                 where:{
                     "username": usuario,
                 },
