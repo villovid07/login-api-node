@@ -1,9 +1,12 @@
-var Models=require("../models/index");
-var FuncionesAdicionales = require("../helpers/funcionesAdicionales");
-var sequelize = Models.sequelize;
-var Constantes = require("../constantes/constantesApp");
-var moment = require('moment');  
-var Jsonwebtoken = require("jsonwebtoken");
+const Models=require("../models/index");
+const FuncionesAdicionales = require("../helpers/funcionesAdicionales");
+const sequelize = Models.sequelize;
+const Constantes = require("../constantes/constantesApp");
+const moment = require('moment');  
+const Jsonwebtoken = require("jsonwebtoken");
+const UsuarioDao = require("./usuarioDao");
+
+
 
 
 const registroUsuario = ( datos , contrasenia)=>{
@@ -56,7 +59,7 @@ const bloquearUsuario  = (username, tiempo)=>{
             let fechaactual = moment();
             fechaactual.add(tiempo, 'minute');
 
-            let actualizado = await actualizarUsuario({"fecha_bloqueo":fechaactual.toDate()},usuario.id_usuario, trans);
+            let actualizado = await UsuarioDao.actualizarUsuario({"fecha_bloqueo":fechaactual.toDate()},usuario.id_usuario, trans);
             console.log(actualizado);
 
             await trans.commit();
@@ -77,7 +80,7 @@ const actualizarFechaLogin = (id_usuario)=>{
         let trans = null
         try {
             trans = await sequelize.transaction({autocommit:false});
-            let actualizacion = await actualizarUsuario ({fecha_ultimo_login: new Date()}, id_usuario, trans);
+            let actualizacion = await UsuarioDao.actualizarUsuario ({fecha_ultimo_login: new Date()}, id_usuario, trans);
             console.log(actualizacion);
             await trans.commit();
             resolve ({"mensaje":"Actualizada fecha de ultimo login"})
@@ -90,20 +93,7 @@ const actualizarFechaLogin = (id_usuario)=>{
     })
 }
 
-const actualizarUsuario = (datos, id_usuario, trans)=>{
-    return new Promise((resolve, reject)=>{
-        Models.Usuario.update(datos, {
-            where:{
-                id_usuario: id_usuario
-            },
-            transaction: trans
-        }).spread((contador, registros )=>{
-            resolve( {"mensaje": `usuario ${id_usuario} actualizado exitosamente`});
-        }).catch((error)=>{
-            reject(error);
-        });
-    }); 
-}
+
 
 
 const darInfoToken = async (token)=>{
@@ -134,9 +124,17 @@ const verificarToken = (token, clave) => {
     })
 }
 
+const findAllPerfil =()=> {
+    return Models.Perfil.findAll({
+        raw:true
+    });
+}
+
 module.exports={
     registroUsuario,
     bloquearUsuario, 
     actualizarFechaLogin,
-    darInfoToken
+    darInfoToken,
+    verificarToken, 
+    findAllPerfil
 }

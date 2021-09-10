@@ -15,4 +15,10 @@ router.get("/complejidades", AdminController.darComplejidades )
 
 router.put("/complejidades/:id_complejidad", AdminController.actualizarComplejidad )
 
+router.post("/all-usuarios", AdminController.findAllUsuarios);
+
+router.put("/usuario/:id_usuario", AdminController.updateConfigUsuario);
+
+router.get("/perfil", AdminController.findAllPerfil);
+
 module.exports = router; 

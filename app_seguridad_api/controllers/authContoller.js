@@ -70,7 +70,7 @@ const registro = async (req, res )=>{
             Respuesta.sendJsonResponse(res,200,{"mensaje": "Registro realizado de manera exitosa"});
             
         } else  {
-            throw new Error("Contraseña no cumple con las condiciones minimas");
+            throw new Error(`La contraseña no cumple con las condiciones : ${contra.errores}`);
         }    
     } catch (error) {
         Respuesta.sendJsonResponse(res, 500, {"mensaje" : error.message});
@@ -84,11 +84,14 @@ const validarContra = (contrasenia, nivel)=>{
    return new Promise (async (resolve, reject )=>{
     try {
 
-        let valoresComplejidad = await ComplejidadDao.darComplejidadById(nivel); 
+        let valoresComplejidad = await ComplejidadDao.darComplejidadById(nivel);
+        let validacion = await validarParametroComplejidad( valoresComplejidad, contrasenia);
+
         console.log(valoresComplejidad);
         resolve ({
             valor: Encriptacion.encriptar(contrasenia), 
-            valida: true
+            valida: validacion.valida, 
+            errores: validacion.arreglo_errores.join(', ')
         })
         
     } catch (error) {
@@ -133,6 +136,65 @@ const darInfoUsuario = async (req, res)=>{
     } catch (error) {
         Respuesta.sendJsonResponse(res, 500, {"mensaje": "El usuario no se encuentra autenticado", "error_original": error});   
     }
+}
+
+
+const validarParametroComplejidad = ( complejidad, contrasenia)=>{
+
+    return new Promise(async (resolve, reject)=>{
+        try {
+
+             let arregloErrores = new Array();
+
+             if(contrasenia.length < complejidad.longitud_minima){
+                arregloErrores.push(`Debe tener minimo ${complejidad.longitud_minima} caracteres`);
+             }     
+             if(complejidad.ctrl_reutilizacion === Constantes.CARACTER_SI){
+                //control de reutilizacion 
+             }
+             if(complejidad.ctrl_similitud === Constantes.CARACTER_SI){
+                //control de similitudes 
+             }
+             if(complejidad.ctrl_caracteres === Constantes.CARACTER_SI){
+                if(complejidad.requiere_mayus == Constantes.CARACTER_SI){
+                    let regmayus = new RegExp("^(?=.*[A-Z]).+$");
+                    if(!regmayus.test(contrasenia)){
+                        arregloErrores.push("Debe tener al menos una letra mayuscula");
+                    }
+                }
+
+                if(complejidad.requiere_minusculas == Constantes.CARACTER_SI){
+                    let regminus = new RegExp("^(?=.*[a-z]).+$");
+                    if(!regminus.test(contrasenia)){
+                        arregloErrores.push("Debe tener al menos una letra minuscula");
+                    }
+                }
+                
+                if(complejidad.requiere_numeros == Constantes.CARACTER_SI){
+                    let regnumeros = new RegExp("^(?=.*\\d).+$");
+                    if(!regnumeros.test(contrasenia)){
+                        arregloErrores.push("Debe tener al menos un numero");
+                    }
+                }
+
+                if(complejidad.requiere_especiales == Constantes.CARACTER_SI){
+                    let regespecial = new RegExp("^(?=.*[-+_!@#$%^&*., ?]).+$");
+                    if(!regespecial.test(contrasenia)){
+                        arregloErrores.push("Debe tener al menos un numero");
+                    }
+                }
+             }
+             
+             resolve({
+                 "arreglo_errores": arregloErrores,
+                 "valida":arregloErrores.length <= 0
+             })
+        } catch (error) {
+            reject(error);
+        }
+
+    });
+
 }
 
 
