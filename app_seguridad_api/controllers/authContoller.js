@@ -4,8 +4,10 @@ const FuncionesAdicionales = require("../../app_core/helpers/funcionesAdicionale
 const Encriptacion = require("../../app_core/helpers/encriptacion");
 const Constantes = require ("../../app_core/constantes/constantesApp");
 const SeguridadDao = require ("../../app_core/dao/seguridadDao");
+const UsuarioDao = require("../../app_core/dao/usuarioDao");
 const ComplejidadDao = require ("../../app_core/dao/complejidadDao");
 const Passport = require("passport");
+const { COMPLEJIDAD_DEFAULT } = require("../../app_core/constantes/constantesApp");
 
 
 const doLogin = (req, res, next) => {
@@ -36,7 +38,7 @@ const doLogin = (req, res, next) => {
 
         } else {
            console.log(error); 
-           Respuesta.sendJsonResponse(res, 500, {"mensaje": error.mensaje, "complejidad": error.id_complejidad});     
+           Respuesta.sendJsonResponse(res, 500, {"mensaje": error.mensaje, "complejidad": error.id_complejidad, "bloqueado":error.bloqueado});     
         }
 
     })(req, res, next);
@@ -79,13 +81,13 @@ const registro = async (req, res )=>{
 }
 
 
-const validarContra = (contrasenia, nivel)=>{
+const validarContra = (contrasenia, nivel, id_usuario =null)=>{
 
    return new Promise (async (resolve, reject )=>{
     try {
 
         let valoresComplejidad = await ComplejidadDao.darComplejidadById(nivel);
-        let validacion = await validarParametroComplejidad( valoresComplejidad, contrasenia);
+        let validacion = await validarParametroComplejidad( valoresComplejidad, contrasenia, id_usuario);
 
         console.log(valoresComplejidad);
         resolve ({
@@ -139,7 +141,7 @@ const darInfoUsuario = async (req, res)=>{
 }
 
 
-const validarParametroComplejidad = ( complejidad, contrasenia)=>{
+const validarParametroComplejidad = ( complejidad, contrasenia, id_usuario=null)=>{
 
     return new Promise(async (resolve, reject)=>{
         try {
@@ -151,9 +153,21 @@ const validarParametroComplejidad = ( complejidad, contrasenia)=>{
              }     
              if(complejidad.ctrl_reutilizacion === Constantes.CARACTER_SI){
                 //control de reutilizacion 
+                if(id_usuario){
+                    let resReutilizacion = await SeguridadDao.evaluarReutilizacion(contrasenia, id_usuario, complejidad.factor_reutilizacion);
+                    if(!resReutilizacion.valido){
+                        arregloErrores.push(resReutilizacion.mensaje);
+                    }
+                }
              }
              if(complejidad.ctrl_similitud === Constantes.CARACTER_SI){
                 //control de similitudes 
+                if(id_usuario){
+                    let resimilitud = await SeguridadDao.evaluarSimilitud(contrasenia,id_usuario, complejidad.factor_similitud);
+                    if(!resimilitud.valido){
+                        arregloErrores.push(resimilitud.mensaje);
+                    }
+                }
              }
              if(complejidad.ctrl_caracteres === Constantes.CARACTER_SI){
                 if(complejidad.requiere_mayus == Constantes.CARACTER_SI){
@@ -180,7 +194,7 @@ const validarParametroComplejidad = ( complejidad, contrasenia)=>{
                 if(complejidad.requiere_especiales == Constantes.CARACTER_SI){
                     let regespecial = new RegExp("^(?=.*[-+_!@#$%^&*., ?]).+$");
                     if(!regespecial.test(contrasenia)){
-                        arregloErrores.push("Debe tener al menos un numero");
+                        arregloErrores.push("Debe tener al menos un caracter especial");
                     }
                 }
              }
@@ -198,9 +212,36 @@ const validarParametroComplejidad = ( complejidad, contrasenia)=>{
 }
 
 
+const actualizarContrasena = async (req, res)=>{
+    try {
+        let token = req.body.token;
+        let contra = req.body.contrasena;
+        let decodificado = await SeguridadDao.verificarToken(token, process.env.JWT_SECRET);
+         if(decodificado){
+            let contraValida =  await validarContra(contra, decodificado.id_complejidad, decodificado.user);
+            if(contraValida.valida){
+                 
+                let actuacontrasena = await UsuarioDao.actualizarContrasena(contraValida.valor, decodificado.user);
+                Respuesta.sendJsonResponse(res,200,{"mensaje": "Registro realizado de manera exitosa"});
+                
+            } else  {
+                throw new Error(`La contraseña no cumple con las condiciones : ${contraValida.errores}`);
+            }    
+
+
+        } else {
+            throw new Error("El token enviado no es valido");
+        }
+    } catch (error) {
+        Respuesta.sendJsonResponse(res, 500, { "mensaje": error.message, "error_original": error});   
+    }
+}
+
+
 module.exports={
     registro, 
     doLogin, 
     validarNivelBloqueo,
-    darInfoUsuario
+    darInfoUsuario,
+    actualizarContrasena
 }

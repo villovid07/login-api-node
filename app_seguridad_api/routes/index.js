@@ -21,4 +21,6 @@ router.put("/usuario/:id_usuario", AdminController.updateConfigUsuario);
 
 router.get("/perfil", AdminController.findAllPerfil);
 
+router.post("/actualizar-contra", AuthController.actualizarContrasena);
+
 module.exports = router; 

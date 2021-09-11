@@ -21,6 +21,7 @@ passport.use(new LocalStrategy({
         try{
 
             var autenticado = false;
+            var bloqueado= false;
             var mensajeerror="";
             var userres = await Models.Usuario.find({
                 attributes:["id_usuario", "nombre", "apellido", "id_complejidad", "fecha_bloqueo", "fecha_ultimo_login"],
@@ -39,7 +40,8 @@ passport.use(new LocalStrategy({
                     var contra = await Models.Contrasenia.find({
                         where:{
                             estado:'A',
-                            password_value:Encriptar.encriptar(password)
+                            password_value:Encriptar.encriptar(password),
+                            id_usuario:userres.id_usuario
                         },
                         raw:true
                     });
@@ -50,6 +52,7 @@ passport.use(new LocalStrategy({
                         mensajeerror="Contraseña incorrecta";
                     }
                 } else {
+                    bloqueado=true;
                     mensajeerror= "Usuario bloqueado hasta "+ FuncionesAdicionales.formatearFecha(userres.fecha_bloqueo, 'S');
                 }
                 
@@ -63,7 +66,8 @@ passport.use(new LocalStrategy({
             } else {
                 return done(null, false, {
                     "id_complejidad": userres? userres.id_complejidad: null,
-                    "mensaje": mensajeerror
+                    "mensaje": mensajeerror,
+                    "bloqueado":bloqueado
                 });
             }
         }

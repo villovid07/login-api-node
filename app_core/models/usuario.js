@@ -83,6 +83,7 @@ module.exports = function (sequelize, DataTypes) {
               return Jwt.sign({
                 user:idusuario,
                 nombre:nombre,
+                id_complejidad: this.id_complejidad,
                 fecha_ultimo_login: this.fecha_ultimo_login?FuncionesAdicionales.formatearFecha(this.fecha_ultimo_login, 'S'):FuncionesAdicionales.formatearFecha(new Date(), 'S'),
                 exp:parseInt(fechaExpiracion.getTime()/1000),
               }, clave, { algorithm: 'HS256', })
